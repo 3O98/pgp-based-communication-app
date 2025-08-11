@@ -101,7 +101,7 @@ in Tor Browser.  The UI includes a **Server URL** field where you can paste the 
 
 ### 4. Limitations
 
-While this project demonstrates end‑to‑end encryption and introduces Tor hidden services, it remains a proof of concept.  It does **not** implement authentication beyond verifying that a provided private key matches the stored public key.  Use strong passphrases if you encrypt your private key, and be aware that an attacker who compromises your device could extract your key.  Always run Tor Browser to connect to `.onion` addresses.
+While this project demonstrates end‑to‑end encryption and introduces Tor hidden services, and if setup properly can be way more secure than you avergae messaging service it remains a proof of concept.  It does **not** implement authentication beyond verifying that a provided private key matches the stored public key.  Use strong passphrases if you encrypt your private key, and be aware that an attacker who compromises your device could extract your key.  Always run Tor Browser to connect to `.onion` addresses.
 
 ## Security notice
 

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PGP Messenger</title>
+    <!-- Tailwind CSS via CDN for rapid styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to support dark mode via the `dark` class -->
+    <script>
+      // Enable dark mode via class rather than media query.  The config
+      // must be defined before Tailwind is loaded, so place it here.
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {},
+        },
+      };
+    </script>
+  </head>
+  <body class="h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <!-- Application root -->
+    <div id="app" class="flex flex-col h-full">
+      <!-- Header with application title and theme toggle -->
+      <header class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <!-- Application title -->
+        <div class="flex items-center space-x-3">
+          <span class="text-xl font-semibold">PGP Messenger</span>
+        </div>
+        <!-- Right side controls: server status and theme toggle -->
+        <div class="flex items-center space-x-4">
+          <!-- Server connection status indicator -->
+          <div id="serverStatus" class="flex items-center text-sm">
+            <span id="statusDot" class="h-2 w-2 rounded-full bg-red-500 mr-2"></span>
+            <span id="statusLabel">Offline</span>
+          </div>
+          <!-- Theme toggle button: uses emoji for simplicity -->
+          <button id="themeToggle" aria-label="Toggle theme" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span id="themeIcon">🌞</span>
+          </button>
+        </div>
+      </header>
+      <!-- Main content area: sidebar and chat -->
+      <main class="flex flex-1 overflow-hidden">
+        <!-- Sidebar containing registration, user info, and contacts -->
+        <aside class="w-72 bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 flex flex-col overflow-y-auto">
+          <!-- Registration panel (visible before user registers) -->
+          <div id="registrationPanel" class="space-y-4">
+            <h2 class="text-lg font-semibold">Register / Login</h2>
+            <div class="space-y-2">
+              <label class="block text-sm">Username
+                <input id="regUsername" type="text" class="mt-1 w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="Your username" />
+              </label>
+              <label class="block text-sm">Passphrase (optional)
+                <input id="regPass" type="password" class="mt-1 w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="Optional passphrase" />
+              </label>
+              <label class="block text-sm">Server URL
+                <input id="serverURLInput" type="text" class="mt-1 w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="http://127.0.0.1:3001" value="http://127.0.0.1:3001" />
+              </label>
+            </div>
+            <div class="flex flex-col space-y-2">
+              <button id="regGenerateBtn" class="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded">Generate Key Pair</button>
+              <div class="flex items-center space-x-2">
+                <input id="regImportFile" type="file" class="flex-1 text-sm" />
+                <button id="regImportBtn" class="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded">Import</button>
+              </div>
+              <!-- Textarea for pasting private key -->
+              <textarea id="regImportText" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-xs" rows="3" placeholder="Paste your private key here (armored)"></textarea>
+              <button id="regImportPasteBtn" class="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded">Import Pasted Key</button>
+              <button id="regRegisterBtn" class="p-2 bg-green-500 hover:bg-green-600 text-white rounded">Register</button>
+              <button id="regLoginBtn" class="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded">Login</button>
+            </div>
+            <p id="regStatus" class="text-sm"></p>
+          </div>
+          <!-- Contacts panel (hidden until user registers) -->
+          <div id="contactsPanel" class="hidden flex flex-col space-y-4 flex-1">
+            <!-- User info and export key -->
+            <div>
+              <h3 class="text-md font-semibold mb-2">Your Info</h3>
+              <p id="userInfo" class="text-sm break-words"></p>
+              <p id="userFingerprint" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p>
+              <button id="copyPublicKeyBtn" class="mt-2 text-blue-500 underline text-sm">Copy Public Key</button>
+              <button id="exportKeyBtn" class="mt-1 text-blue-500 underline text-sm">Export Private Key</button>
+            </div>
+            <!-- Add contact form and search -->
+            <div>
+              <h3 class="text-md font-semibold mb-2">Add Contact</h3>
+              <input id="addContactInput" type="text" class="w-full p-2 mb-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="Friend's username" />
+              <button id="addContactBtn" class="w-full p-2 mb-4 bg-blue-500 hover:bg-blue-600 text-white rounded">Add Contact</button>
+              <input id="contactSearchInput" type="text" class="w-full p-2 mb-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="Search contacts" />
+            </div>
+            <!-- Requests & Contact list container -->
+            <div class="flex-1 overflow-y-auto space-y-6">
+              <!-- Requests section (hidden when no requests) -->
+              <div id="requestsContainer" class="hidden">
+                <h3 class="text-md font-semibold mb-2 flex items-center">Requests
+                  <span id="requestsBadge" class="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-500 text-white hidden"></span>
+                </h3>
+                <ul id="requestsList" class="space-y-1"></ul>
+              </div>
+              <!-- Contacts section -->
+              <div>
+                <h3 class="text-md font-semibold mb-2">Contacts</h3>
+                <ul id="contactsList" class="space-y-1"></ul>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <!-- Chat panel (hidden until user registers) -->
+        <section id="chatPanel" class="flex-1 flex flex-col p-4 overflow-hidden hidden">
+          <div id="chatHeader" class="mb-4 flex items-center justify-between">
+            <h2 id="activeChatName" class="text-lg font-semibold"></h2>
+            <!-- Request action buttons (hidden unless viewing a request) -->
+            <div id="requestActions" class="hidden space-x-2">
+              <button id="acceptRequestBtn" class="px-2 py-1 text-xs rounded bg-green-500 hover:bg-green-600 text-white">Accept</button>
+              <button id="declineRequestBtn" class="px-2 py-1 text-xs rounded bg-red-500 hover:bg-red-600 text-white">Decline</button>
+            </div>
+          </div>
+          <div id="chatMessages" class="flex-1 overflow-y-auto space-y-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded"></div>
+          <div class="mt-4 flex items-center space-x-2">
+            <!-- Hidden file input for images -->
+            <input id="imageInput" type="file" accept="image/*" class="hidden" />
+            <!-- Button to trigger image selection -->
+            <button id="attachImageBtn" class="p-2 bg-gray-300 hover:bg-gray-400 text-gray-900 dark:bg-gray-700 dark:text-gray-100 rounded" title="Attach image">
+              📷
+            </button>
+            <!-- Text input for chat messages -->
+            <input id="chatInput" type="text" class="flex-1 p-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="Type a message..." />
+            <!-- Send button -->
+            <button id="sendChatBtn" class="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded">Send</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <!-- Load Socket.IO client from the same origin.  When the frontend is served
+         by the backend, this path resolves to the Socket.IO client script
+         exposed by the server.  Using a relative path avoids external CDN
+         dependencies (which may be blocked on Tor) and prevents integrity
+         mismatch issues. -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Load OpenPGP.js v4 for cryptography -->
+    <script src="https://cdn.jsdelivr.net/npm/openpgp@4.10.10/dist/openpgp.min.js"></script>
+    <!-- Application logic -->
+    <script src="app.js"></script>
+  </body>
+</html>
